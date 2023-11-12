@@ -1,0 +1,510 @@
+//program cpp
+//codigo sin comentarios
+#include <iostream>
+#include "Program.h"
+
+int Menu::idSearch(string id) {
+
+	for (int i = 0; i < 5; i++) {
+		if (clients[i].getId() == id) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+void Menu::addClient() {
+	string id, name, email, phone;
+	cout << "[INFORMACION DEL USUARIO]\n";
+	cout << "Ingrese su numero de cedula: ";
+	cin >> id;
+	if (id.size() != 9)
+	{
+		while (id.size() != 9) {
+			cout << "El numero de cedula debe de llevar 9 digitos\nPor favor, ingrese de nuevo el numero de cedula de nuevo: ";
+			cin >> id;
+		}
+	}
+
+	int index = idSearch(id);
+
+	if (index >= 0) {
+		while (index >= 0) {
+			cout << "Este usuario ya se encuentra registrado\nIngrese el numero de cedula de nuevo: ";
+			cin >> id;
+
+			index = idSearch(id);
+
+		}
+	}
+	else
+	{
+		system("cls");
+	}
+
+	cin.ignore();
+	cout << "Ingrese su nombre: ";
+	getline(cin, name);
+	cout << "Ingrese su email: ";
+	cin >> email;
+	cout << "Ingrese su numero de telefono: ";
+	cin >> phone;
+	Client client(id, name, email, phone);
+
+	for (int i = 0; i < 5; i++) {
+		if (i == customerCount) {
+			clients[i] = client;
+			customerCount++;
+			break;
+		}
+	}
+}
+
+void Menu::assignAccount() {
+	string id;
+	cout << "Escriba la cedula para asignarle la cuenta: ";
+	cin >> id;
+
+	int index = idSearch(id);
+
+	if (index >= 0) {
+		Account account;
+		Services services;
+		clients[index].setAccount(account);
+		clients[index].setServices(services);
+		clients[index].setNested(true);
+		cout << "Asignacion de cuenta exitoso";
+		cout << "Se le asigno una cuenta al usuario " << clients[index].getName() << endl;
+		cout << "MONTO ACTUAL: " << clients[index].getAccout().getMoney() << endl;
+	}
+	else
+	{
+		cout << "Cedula no encontrada\n";
+	}
+
+}
+
+void Menu::assignAccountToUser(int i) {
+	Account account;
+	Services services;
+	clients[i].setAccount(account);
+	clients[i].setServices(services);
+	clients[i].setNested(true);
+}
+
+void Menu::checkBalance(){
+	string id;
+	cout << "Escriba la cedula para consultar saldo: ";
+	cin >> id;
+
+	int index = idSearch(id);
+
+	if (index >= 0) {
+		cout << "El saldo es de: " << clients[index].getAccout().getMoney() << "\n";
+	}
+	else
+	{
+		cout << "Cedula no encontrado";
+	}
+}
+
+void Menu::payServices(Services services, int i, int opt) {
+	int serviceAmount = 0;
+	if (opt == 1) {
+		serviceAmount = services.getWater();
+	}
+	else if (opt == 2) {
+		serviceAmount = services.getLigth();
+	}
+	else if (opt == 3) {
+		serviceAmount = services.getInternet();
+	}
+	else {
+		return;
+	}
+
+	if (serviceAmount != 0) {
+
+		if (clients[i].getAccout().getMoney() >= serviceAmount) {
+			int money = clients[i].getAccout().getMoney();
+			int result = money - serviceAmount;
+
+			Account clientAccount = clients[i].getAccout();
+			clientAccount.setMoney(result);
+			clients[i].setAccount(clientAccount);
+
+			Services clientServices = clients[i].getServices();
+			if (opt == 1) {
+				clientServices.setWater(0);
+			}
+			else if (opt == 2) {
+				clientServices.setLigth(0);
+			}
+			else if (opt == 3) {
+				clientServices.setInternet(0);
+			}
+
+			clients[i].setServices(clientServices);
+			cout << "pago de servicios exitoso\n";
+		}
+		else {
+			cout << "Fondos insuficientes" << endl;
+		}
+	}
+	else {
+		cout << "Este servicio ya fue cancelado" << endl;
+	}
+}
+
+void Menu::PaymentServices() {
+	int opt;
+	string id;
+	Services services;
+	cout << "Ingrese el numero de cedula que quiere realizar los pagos: ";
+	cin >> id;
+
+	int index = idSearch(id);
+
+	if (index >= 0) {
+		services = clients[index].getServices();
+
+		if (!clients[index].getNested()) {
+			cout << "Este usuario no tiene una cuenta asignada" << endl;
+			cout << "Le asignamos una por ti ;)" << endl;
+			assignAccountToUser(index);
+		}
+		if (clients[index].getAccout().getMoney() <= 0) {
+			cout << "Este usuario no tiene dinero" << endl;
+			return;
+		}
+	}
+	else
+	{
+		cout << "Cedula no encontrado";
+	}
+
+	cout << "Has ingresado a pagar los servicios, cual deseas pagar?\n";
+	cout << "1. Agua\n";
+	cout << "2. Luz\n";
+	cout << "3. Internet\n";
+	cin >> opt;
+
+	payServices(services, index, opt);
+}
+
+void Menu::transfer() {
+	int opt = -1;
+	cout << "Menu de transferencias\n";
+	cout << "1. Transferencia hacia otra cuenta\n";
+	cout << "2. Retiro\n";
+	cout << "3. Depositar\n";
+	cin >> opt;
+
+	if (opt == 1) {
+		string id;
+		cout << "Escriba la cedula de la cuenta con la que se hara el deposito: ";
+		cin >> id;
+
+		int index = idSearch(id);
+
+		if (index >= 0 && clients[index].getNested() == true) {
+			string id2;
+			cout << "Escriba la cedula de la cuenta a la que le llegara el deposito: ";
+			cin >> id2;
+
+			int index2 = idSearch(id2);
+
+			if (index2 >= 0 && clients[index2].getNested() == true) {
+				int amount;
+				cout << "Monto del deposito: ";
+				cin >> amount;
+
+				if (clients[index].getAccout().getMoney() >= amount) {
+					int currentDAmount = clients[index].getAccout().getMoney();
+					int result1 = currentDAmount - amount;
+					Account dAccout = clients[index].getAccout(); //Depositando la plata
+					dAccout.setMoney(result1);
+					clients[index].setAccount(dAccout);
+
+					int currentRAmount = clients[index2].getAccout().getMoney();
+					int result2 = currentRAmount + amount;
+					Account rAccout = clients[index2].getAccout(); //Recibidor de la plata
+					rAccout.setMoney(result2);
+					clients[index2].setAccount(rAccout);
+
+					cout << "Transaccion exitosa\n";
+				}
+			}
+		}
+		else
+		{
+			cout << "Este usuario no existe\n";
+			return;
+		}
+	}
+	else if (opt == 2) {
+		string id;
+		cout << "Escriba la cedula para retirar el dinero: ";
+		cin >> id;
+
+		int index = idSearch(id);
+
+		if (index >= 0 && clients[index].getNested() == true) {
+			int amount;
+			cout << "Ingrese el monto a retirar: ";
+			cin >> amount;
+
+			if (clients[index].getAccout().getMoney() >= amount) {
+				int currentAmount = clients[index].getAccout().getMoney();
+				int result = currentAmount - amount; //retira el monto que el usuario puso
+
+				Account userAccout = clients[index].getAccout();
+				userAccout.setMoney(result);
+				clients[index].setAccount(userAccout);
+				cout << "Retiro exitoso\n";
+			}
+			else {
+				cout << "Fondos insuficientes para realizar el deposito";
+			}
+		}
+		else
+		{
+			cout << "Este usuario no existe\n";
+		}
+	}
+	else if (opt == 3) {
+		string id;
+		cout << "Escriba la cedula para asignarle la cuenta: ";
+		cin >> id;
+
+		int index = idSearch(id);
+
+		if (index >= 0 && clients[index].getNested() == true) {
+			int amount;
+			cout << "Ingrese el monto a depositar: ";
+			cin >> amount;
+
+			int currentAmount = clients[index].getAccout().getMoney();
+			int result = currentAmount + amount;
+
+			Account userAccout = clients[index].getAccout();
+			userAccout.setMoney(result);
+			clients[index].setAccount(userAccout);
+			cout << "Deposito exitoso\n";
+		}
+		else
+		{
+			cout << "Este usuario no existe\n";
+		}
+	}
+}
+
+void Menu::record() {
+	int contador = 3;
+	string password, correctPasword = "EIF200";
+
+	cout << "==Solo se vera el historial de los usuarios que tienen cuenta en nuestro banco==\n";
+
+	while (contador >= 1) {
+		cout << "Escriba la contrasena para poder entrar al historial: ";
+		cin >> password;
+		if (password == correctPasword) {
+			for (int i = 0; i < 5; i++) {
+				if (clients[i].getNested() == true) {
+					cout << "==================== usuario " << i + 1 << " ====================\n";
+					cout << "Cedula: " << clients[i].getId() << "\n";
+					cout << "Nombre de usuario: " << clients[i].getName() << "\n";
+					cout << "Numero de cuenta iban: " << clients[i].getAccout().createIban() << "\n";
+					cout << "Saldo: " << clients[i].getAccout().getMoney() << "\n";
+					contador = 0;
+				}
+			}
+		}
+		else
+		{
+			cout << "Contrasena incorrecta. intentos restantes: " << contador - 1 << "\n";
+		}
+		contador--;
+	}
+}
+
+void Menu::mainMenu() {
+	int opt = -1;
+	cout << "Bienvenido al Sistema de Gestion de Cuentas Stiff's and Cipri's bank\n";
+	cout << "Este sistema te permite administrar tus cuentas bancarias y pagar servicios en linea\n";
+	cout << "Por favor, elige una opcion del menu para comenzar\n";
+	while (opt != 0) {
+		cout << "\n--- Menu ---\n";
+		cout << "1- Agregar cliente\n";
+		cout << "2- Pagar servicios\n";
+		cout << "3- Asignar cuenta\n";
+		cout << "4- Consultar saldo\n";
+		cout << "5- Realizar transaccion\n";
+		cout << "6- Historial\n";
+		cout << "0- Salida\n";
+		cin >> opt;
+
+		if (opt == 1) {
+			system("cls");
+			addClient();
+		}
+		else if (opt == 2){
+			system("cls");
+			PaymentServices();
+
+		}
+		else if (opt == 3) {
+			system("cls");
+			assignAccount();
+		}
+		else if (opt == 4) {
+			system("cls");
+			checkBalance();
+		}
+		else if (opt == 5) {
+			system("cls");
+			transfer();
+		}
+		else if (opt == 6)
+		{
+			system("cls");
+			record();
+		}
+		if (opt > 6)
+		{
+			cout << "numero ingresado incorrecto....\n";
+		}
+	}
+}
+//services.cpp sin comentar
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+#include "Services.h"
+
+Services::Services() {
+	srand(time(0));
+
+	this->ligth = rand() % (10001 - 4000) + 4000;
+	this->water = rand() % (20001 - 8000) + 8000;
+	this->internet = rand() % (33001 - 15000) + 15000;
+}
+
+Services::~Services() {
+
+}
+
+int Services::getLigth() {
+	return this->ligth;
+}
+
+int Services::getWater() {
+	return this->water;
+}
+
+int Services::getInternet() {
+	return this->internet;
+}
+
+void Services::setLigth(int light) {
+	this->ligth = light;
+}
+
+void Services::setWater(int water) {
+	this->water = water;
+}
+
+void Services::setInternet(int internet) {
+	this->internet = internet;
+}
+//Account sin comentar
+#include "Client.h"
+#include "Account.h"
+
+Account::Account() {
+	this->money = 0;
+	this->iban = createIban();
+}
+
+Account::~Account()
+{
+}
+
+string Account::createIban() {
+
+	string tempIban = "CR05";
+	for (int i = 0; i < 18; i++) {
+		int random = rand() % 10;
+		string number = to_string(random);//convierte random entero a string
+		if (i % 4 == 0) { //Espacio cada 4 digitos
+			tempIban += " ";
+		}
+		tempIban += number;
+	}
+	return tempIban;
+}
+
+double Account::getMoney() {
+	return this->money;
+}
+
+void Account::setMoney(double money) {
+	this->money = money;
+}
+//Client.cpp sin comentar
+#include "Client.h"
+#include "Account.h"
+
+Client::Client() {
+}
+
+Client::~Client() {
+}
+
+Client::Client(string id, string name, string email, string phone) {
+	this->id = id;
+	this->name = name;
+	this->email = email;
+	this->phone = phone;
+	this->isNested = false;
+}
+
+string Client::getId() {
+	return this->id;
+}
+
+string Client::getName() {
+	return this->name;
+}
+
+string Client::getEmail() {
+	return this->email;
+}
+
+string Client::getPhone() {
+	return this->phone;
+}
+
+bool Client::getNested() {
+	return this->isNested;
+}
+
+Account Client::getAccout() {
+	return this->account;
+}
+
+void Client::setAccount(Account account) {
+	this->account = account;
+}
+
+void Client::setServices(Services services) {
+	this->services = services;
+}
+
+void Client::setNested(bool isNested) {
+	this->isNested = isNested;
+}
+
+Services Client::getServices() {
+	return this->services;
+}
